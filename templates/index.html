@@ -1,52 +1,182 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Video Captioning</title>
+    <title>🎬 AI Video Captioning</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1f2937, #111827);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+        #uploadForm {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(6px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            text-align: center;
+            margin-bottom: 20px;
+            width: 340px;
+            transition: transform 0.2s ease;
+        }
+        #uploadForm:hover {
+            transform: scale(1.02);
+        }
+        input[type="file"] {
+            display: block;
+            margin: 10px auto;
+            color: white;
+        }
+        button {
+            background: #2563eb;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        button:hover {
+            background: #1e40af;
+        }
+        .progress {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #d1d5db;
+        }
+        #results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+        }
+        .result-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.4s ease forwards;
+        }
+        .result-card img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .caption {
+            font-size: 14px;
+            color: #e5e7eb;
+            min-height: 40px;
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload Video for Live Captioning</h1>
+    <h1>🎥 AI Video Captioning</h1>
 
     <form id="uploadForm" enctype="multipart/form-data">
         <input type="file" name="video" accept="video/*" required>
+        <br>
         <button type="submit">Upload & Generate</button>
+        <div class="progress" id="progressText"></div>
     </form>
 
-    <div id="results" style="margin-top:20px;"></div>
+    <div id="results"></div>
 
     <script>
+    function typeWriterEffectWords(element, text, speed = 200) {
+        let words = text.split(" ");
+        let i = 0;
+        function typing() {
+            if (i < words.length) {
+                element.textContent += (i === 0 ? "" : " ") + words[i];
+                i++;
+                setTimeout(typing, speed);
+            }
+        }
+        typing();
+    }
+
     document.getElementById('uploadForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const formData = new FormData(this);
+        
+        const form = e.target;
+        const formData = new FormData(form);
 
-        fetch('/generate', { method: 'POST', body: formData })
+        document.getElementById("results").innerHTML = "";
+        document.getElementById("progressText").textContent = "Processing...";
+
+        fetch('/generate', {
+            method: 'POST',
+            body: formData
+        })
         .then(response => {
+            if (!response.body) {
+                throw new Error("ReadableStream not supported in this browser");
+            }
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
-            
+            let count = 0;
+
+            function processChunk(chunk) {
+                buffer += chunk;
+                const parts = buffer.split("\n\n");
+                parts.slice(0, -1).forEach(msg => {
+                    if (msg.startsWith("data: ")) {
+                        const [fname, cap] = msg.slice(6).split("|");
+                        const el = document.createElement("div");
+                        el.className = "result-card";
+                        el.innerHTML = `
+                            <img src="/static/frames/${fname}" alt="${fname}">
+                            <div class="caption"></div>
+                        `;
+                        const captionDiv = el.querySelector(".caption");
+                        document.getElementById("results").appendChild(el);
+                        typeWriterEffectWords(captionDiv, cap);
+                        count++;
+                        document.getElementById("progressText").textContent = `Received ${count} captions...`;
+                    }
+                });
+                buffer = parts[parts.length - 1];
+            }
+
             function read() {
                 reader.read().then(({ done, value }) => {
-                    if (done) return;
-                    buffer += decoder.decode(value, { stream: true });
-                    const parts = buffer.split("\n\n");
-                    parts.slice(0, -1).forEach(msg => {
-                        if (msg.startsWith("data: ")) {
-                            const [fname, cap] = msg.slice(6).split("|");
-                            const el = document.createElement("div");
-                            el.innerHTML = `
-                                <div style="margin-bottom:15px;">
-                                    <img src="/static/frames/${fname}" style="max-width:200px; display:block; margin-bottom:5px;">
-                                    <b>${fname}</b>: ${cap}
-                                </div>
-                            `;
-                            document.getElementById("results").appendChild(el);
-                        }
-                    });
-                    buffer = parts[parts.length - 1];
+                    if (done) {
+                        document.getElementById("progressText").textContent = "Done!";
+                        return;
+                    }
+                    processChunk(decoder.decode(value, { stream: true }));
                     read();
+                }).catch(err => {
+                    document.getElementById("progressText").textContent = "Error: " + err.message;
                 });
             }
             read();
+        })
+        .catch(err => {
+            document.getElementById("progressText").textContent = "Upload failed: " + err.message;
         });
     });
     </script>
