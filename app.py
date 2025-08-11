@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 import os, cv2
+from PIL import BlipProcessor, BlipForConditionGeneration
+import torch
 
 
 def extract_frames(video_path, output_folder, interval=2):
@@ -51,10 +53,27 @@ def index():
         os.makedirs(frames_folder, exist_ok=True)
         
         num_frames = extract_frames(filepath, frames_folder, interval=2)
-        return f"Extracted {num_frames} frames from video"
-    
+        captions = []
+        for i in range(num_frames):
+            frame_path = os.path.join(frames_folder, f"frame_{i}.jpg")
+            cap_text = caption_image(frame_path)
+            captions.append((f"frame_{i}.jpg", cap_text))
+
+        return render_template("index.html", captions=captions)
 
     return render_template("index.html")
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+model = BlipForConditionGeneration.from_pretrained("Salesforce/blip-image-captioning-base").to(device)
+
+
+def caption_image(image_path):
+    image = image.open(image_path).convert("RGB")
+    inputs = processor(images=image, return_tensors="pt").to(device)
+    out = model.generate(**inputs)
+    caption = processor.decode(out[0], skip_special_tokens=True)
+    return caption
 
 if __name__ == "__main__":
     app.run(debug=True)
