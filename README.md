@@ -25,7 +25,7 @@ Designed as a proof-of-concept for accessibility technology, it can be adapted f
 
 ## Demo
 
-![Demo GIF](ClipCap/show/sample_gif.gif)
+![Demo GIF](show/sample_gif.gif)
 
 ---
 
