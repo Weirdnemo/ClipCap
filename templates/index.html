@@ -10,5 +10,16 @@
         <button type="submit">Upload</button>
     </form>
     
+    {% if captions %}
+        <h2>Results:</h2>
+
+        {%for frame, text in captions %}
+        <div>
+            <img src="{{ url_for('static', filename='frames/' + frame) }}"
+            <p>{{ text }}</p>
+        </div>
+        {% endfor %}
+    {% endif %}
+
 </body>
 </html>

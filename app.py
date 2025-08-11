@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 import os, cv2
-from PIL import BlipProcessor, BlipForConditionGeneration
+from PIL import Image
+from transformers import BlipProcessor, BlipForConditionGeneration
 import torch
 
 
