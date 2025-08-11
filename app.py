@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for
-import os, cv2
+from flask import Flask, render_template, request
+import os
+import cv2
 from PIL import Image
-from transformers import BlipProcessor, BlipForConditionGeneration
+from transformers import BlipProcessor, BlipForConditionalGeneration
 import torch
+
 
 
 def extract_frames(video_path, output_folder, interval=2):
@@ -66,11 +68,11 @@ def index():
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-model = BlipForConditionGeneration.from_pretrained("Salesforce/blip-image-captioning-base").to(device)
+model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base").to(device)
 
 
 def caption_image(image_path):
-    image = image.open(image_path).convert("RGB")
+    image = Image.open(image_path).convert("RGB")
     inputs = processor(images=image, return_tensors="pt").to(device)
     out = model.generate(**inputs)
     caption = processor.decode(out[0], skip_special_tokens=True)
