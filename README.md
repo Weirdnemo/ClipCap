@@ -7,9 +7,10 @@
 
 ## About
 
-After diving into Reinforcement Learning for a couple of months, I decided to explore something new — building an AI-powered video captioning tool! This Flask app extracts frames from uploaded videos, generates captions using a powerful image captioning model, and streams the captions live to the browser.
+This project is an AI-powered video captioning tool built with Flask and advanced vision-language models. It extracts frames from uploaded videos at fixed intervals and generates descriptive captions in real-time, streaming the results directly to the web interface.
 
-Ideal for accessibility demos (e.g., smart glasses for the visually impaired) or just exploring vision-language AI in action.
+Designed as a proof-of-concept for accessibility technology, it can be adapted for use cases like smart glasses for the visually impaired or automated video summarization.
+
 
 ---
 
