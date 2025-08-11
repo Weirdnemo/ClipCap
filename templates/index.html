@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>🎬 AI Video Captioning</title>
+    <meta charset="UTF-8" />
+    <title>VisionAssist — Real-Time Video Scene Narrator</title>
     <style>
         body {
             font-family: 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1f2937, #111827);
-            color: white;
+            background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+            color: #f9fafb;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -15,73 +16,97 @@
             min-height: 100vh;
         }
         h1 {
-            font-size: 2rem;
-            margin-bottom: 20px;
-            font-weight: 600;
+            font-size: 2.4rem;
+            margin-bottom: 24px;
+            font-weight: 700;
             text-align: center;
+            letter-spacing: 1.2px;
+            color: #a5b4fc;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.6);
         }
         #uploadForm {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(6px);
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
             border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.75);
             text-align: center;
-            margin-bottom: 20px;
-            width: 340px;
-            transition: transform 0.2s ease;
+            margin-bottom: 28px;
+            width: 360px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         #uploadForm:hover {
-            transform: scale(1.02);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(101, 97, 255, 0.8);
+        }
+        label {
+            font-size: 1rem;
+            display: block;
+            margin-bottom: 8px;
+            color: #c7d2fe;
         }
         input[type="file"] {
             display: block;
-            margin: 10px auto;
-            color: white;
+            margin: 12px auto;
+            color: #e0e7ff;
+            cursor: pointer;
         }
         button {
-            background: #2563eb;
+            background: linear-gradient(90deg, #6366f1, #4338ca);
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 12px 26px;
+            border-radius: 10px;
             color: white;
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 1rem;
             cursor: pointer;
-            transition: background 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 12px;
         }
         button:hover {
-            background: #1e40af;
+            transform: translateY(-1.5px);
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.7);
         }
         .progress {
-            margin-top: 10px;
+            margin-top: 14px;
             font-size: 14px;
-            color: #d1d5db;
+            color: #a5b4fc;
+            min-height: 20px;
         }
         #results {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 24px;
             width: 100%;
             max-width: 1100px;
+            margin-top: 20px;
         }
         .result-card {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            padding: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.55);
             opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 0.4s ease forwards;
+            transform: translateY(25px);
+            animation: fadeInUp 0.5s ease forwards;
         }
         .result-card img {
             width: 100%;
-            border-radius: 8px;
-            margin-bottom: 8px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            filter: brightness(0.95);
+            transition: transform 0.3s ease;
+        }
+        .result-card img:hover {
+            transform: scale(1.04);
         }
         .caption {
-            font-size: 14px;
-            color: #e5e7eb;
-            min-height: 40px;
+            font-size: 15px;
+            line-height: 1.3;
+            color: #dbeafe;
+            min-height: 48px;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+            font-weight: 600;
         }
         @keyframes fadeInUp {
             to {
@@ -92,93 +117,96 @@
     </style>
 </head>
 <body>
-    <h1>🎥 AI Video Captioning</h1>
+    <h1>VisionAssist</h1>
+    <p style="text-align:center; max-width: 600px; color:#bec9f5; margin-bottom: 36px;">
+        Upload a video to generate real-time scene descriptions. Designed for integration with smart glasses to assist visually impaired users by narrating visual content aloud.
+    </p>
 
-    <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" name="video" accept="video/*" required>
-        <br>
-        <button type="submit">Upload & Generate</button>
-        <div class="progress" id="progressText"></div>
+    <form id="uploadForm" enctype="multipart/form-data" aria-label="Upload video for scene narration">
+        <label for="videoInput">Select Video File</label>
+        <input id="videoInput" type="file" name="video" accept="video/*" required aria-required="true" aria-describedby="progressText"/>
+        <button type="submit" aria-live="polite">Generate Narration</button>
+        <div class="progress" id="progressText" role="status" aria-live="polite" aria-atomic="true"></div>
     </form>
 
-    <div id="results"></div>
+    <div id="results" aria-live="polite" aria-atomic="false"></div>
 
     <script>
-    function typeWriterEffectWords(element, text, speed = 200) {
-        let words = text.split(" ");
-        let i = 0;
-        function typing() {
-            if (i < words.length) {
-                element.textContent += (i === 0 ? "" : " ") + words[i];
-                i++;
-                setTimeout(typing, speed);
+        function typeWriterEffectWords(element, text, speed = 150) {
+            let words = text.split(" ");
+            let i = 0;
+            function typing() {
+                if (i < words.length) {
+                    element.textContent += (i === 0 ? "" : " ") + words[i];
+                    i++;
+                    setTimeout(typing, speed);
+                }
             }
+            typing();
         }
-        typing();
-    }
 
-    document.getElementById('uploadForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const form = e.target;
-        const formData = new FormData(form);
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
 
-        document.getElementById("results").innerHTML = "";
-        document.getElementById("progressText").textContent = "Processing...";
+            const form = e.target;
+            const formData = new FormData(form);
 
-        fetch('/generate', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (!response.body) {
-                throw new Error("ReadableStream not supported in this browser");
-            }
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let count = 0;
+            document.getElementById("results").innerHTML = "";
+            document.getElementById("progressText").textContent = "Processing video and generating narration...";
 
-            function processChunk(chunk) {
-                buffer += chunk;
-                const parts = buffer.split("\n\n");
-                parts.slice(0, -1).forEach(msg => {
-                    if (msg.startsWith("data: ")) {
-                        const [fname, cap] = msg.slice(6).split("|");
-                        const el = document.createElement("div");
-                        el.className = "result-card";
-                        el.innerHTML = `
-                            <img src="/static/frames/${fname}" alt="${fname}">
-                            <div class="caption"></div>
-                        `;
-                        const captionDiv = el.querySelector(".caption");
-                        document.getElementById("results").appendChild(el);
-                        typeWriterEffectWords(captionDiv, cap);
-                        count++;
-                        document.getElementById("progressText").textContent = `Received ${count} captions...`;
-                    }
-                });
-                buffer = parts[parts.length - 1];
-            }
+            fetch('/generate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.body) {
+                    throw new Error("ReadableStream not supported in this browser");
+                }
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let count = 0;
 
-            function read() {
-                reader.read().then(({ done, value }) => {
-                    if (done) {
-                        document.getElementById("progressText").textContent = "Done!";
-                        return;
-                    }
-                    processChunk(decoder.decode(value, { stream: true }));
-                    read();
-                }).catch(err => {
-                    document.getElementById("progressText").textContent = "Error: " + err.message;
-                });
-            }
-            read();
-        })
-        .catch(err => {
-            document.getElementById("progressText").textContent = "Upload failed: " + err.message;
+                function processChunk(chunk) {
+                    buffer += chunk;
+                    const parts = buffer.split("\n\n");
+                    parts.slice(0, -1).forEach(msg => {
+                        if (msg.startsWith("data: ")) {
+                            const [fname, cap] = msg.slice(6).split("|");
+                            const el = document.createElement("div");
+                            el.className = "result-card";
+                            el.innerHTML = `
+                                <img src="/static/frames/${fname}" alt="Video frame ${fname}">
+                                <div class="caption"></div>
+                            `;
+                            const captionDiv = el.querySelector(".caption");
+                            document.getElementById("results").appendChild(el);
+                            typeWriterEffectWords(captionDiv, cap);
+                            count++;
+                            document.getElementById("progressText").textContent = `Received ${count} captions...`;
+                        }
+                    });
+                    buffer = parts[parts.length - 1];
+                }
+
+                function read() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            document.getElementById("progressText").textContent = "All captions generated.";
+                            return;
+                        }
+                        processChunk(decoder.decode(value, { stream: true }));
+                        read();
+                    }).catch(err => {
+                        document.getElementById("progressText").textContent = "Error: " + err.message;
+                    });
+                }
+                read();
+            })
+            .catch(err => {
+                document.getElementById("progressText").textContent = "Upload failed: " + err.message;
+            });
         });
-    });
     </script>
 </body>
 </html>
