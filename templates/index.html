@@ -114,174 +114,99 @@
                 transform: translateY(0);
             }
         }
-
-        #progressBarContainer {
-            width: 340px;
-            height: 16px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            margin: 12px auto 20px auto;
-            overflow: hidden;
-        }
-
-        /* Progress bar fill */
-        #progressBar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #2563eb, #1d4ed8);
-            transition: width 0.3s ease;
-        }
-
-        /* Download button */
-        #downloadBtn {
-            display: none;
-            margin: 12px auto;
-            padding: 10px 20px;
-            background: linear-gradient(90deg, #2563eb, #1d4ed8);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-        #downloadBtn:hover {
-            background: #1d4ed8;
-        }
     </style>
 </head>
 <body>
-    <h1>🎥 AI Video Captioning</h1>
+    <h1>VisionAssist</h1>
+    <p style="text-align:center; max-width: 600px; color:#bec9f5; margin-bottom: 36px;">
+        Upload a video to generate real-time scene descriptions. Designed for integration with smart glasses to assist visually impaired users by narrating visual content aloud.
+    </p>
 
-    <form id="uploadForm" enctype="multipart/form-data" aria-label="Upload video form">
-        <input type="file" name="video" accept="video/*" required>
-        <br>
-        <button type="submit">Upload & Generate</button>
-
-        <div id="progressBarContainer" aria-hidden="true">
-            <div id="progressBar"></div>
-        </div>
-        <div class="progress" id="progressText" aria-live="polite" aria-atomic="true"></div>
+    <form id="uploadForm" enctype="multipart/form-data" aria-label="Upload video for scene narration">
+        <label for="videoInput">Select Video File</label>
+        <input id="videoInput" type="file" name="video" accept="video/*" required aria-required="true" aria-describedby="progressText"/>
+        <button type="submit" aria-live="polite">Generate Narration</button>
+        <div class="progress" id="progressText" role="status" aria-live="polite" aria-atomic="true"></div>
     </form>
 
-    <button id="downloadBtn" aria-label="Download captions as text file">Download Captions</button>
-
-    <div id="results" aria-live="polite" aria-atomic="true"></div>
+    <div id="results" aria-live="polite" aria-atomic="false"></div>
 
     <script>
-    let captionsData = [];
-
-    function typeWriterEffectWords(element, text, speed = 150) {
-        let words = text.split(" ");
-        let i = 0;
-        element.textContent = '';
-        function typing() {
-            if (i < words.length) {
-                element.textContent += (i === 0 ? "" : " ") + words[i];
-                i++;
-                setTimeout(typing, speed);
+        function typeWriterEffectWords(element, text, speed = 150) {
+            let words = text.split(" ");
+            let i = 0;
+            function typing() {
+                if (i < words.length) {
+                    element.textContent += (i === 0 ? "" : " ") + words[i];
+                    i++;
+                    setTimeout(typing, speed);
+                }
             }
+            typing();
         }
-        typing();
-    }
 
-    document.getElementById('uploadForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
 
-        captionsData = [];
-        document.getElementById("results").innerHTML = "";
-        document.getElementById("progressText").textContent = "Uploading...";
-        document.getElementById("progressBar").style.width = "0%";
-        document.getElementById("downloadBtn").style.display = "none";
+            const form = e.target;
+            const formData = new FormData(form);
 
-        const form = e.target;
-        const formData = new FormData(form);
+            document.getElementById("results").innerHTML = "";
+            document.getElementById("progressText").textContent = "Processing video and generating narration...";
 
-        fetch('/generate', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (!response.body) {
-                throw new Error("ReadableStream not supported in this browser");
-            }
+            fetch('/generate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.body) {
+                    throw new Error("ReadableStream not supported in this browser");
+                }
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let count = 0;
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let count = 0;
-
-            // We'll estimate progress roughly based on frames processed
-            // You could improve this if backend sends total count info
-
-            function processChunk(chunk) {
-                buffer += chunk;
-                const parts = buffer.split("\n\n");
-                parts.slice(0, -1).forEach(msg => {
-                    if (msg.startsWith("data: ")) {
-                        const [fname, cap] = msg.slice(6).split("|");
-
-                        // Store captions
-                        captionsData.push(`${fname}: ${cap}`);
-
-                        // Create result card
-                        const el = document.createElement("div");
-                        el.className = "result-card";
-                        el.innerHTML = `
-                            <img src="/static/frames/${fname}" alt="${fname}">
-                            <div class="caption"></div>
-                        `;
-                        const captionDiv = el.querySelector(".caption");
-                        document.getElementById("results").appendChild(el);
-                        typeWriterEffectWords(captionDiv, cap);
-
-                        count++;
-                        // Update progress bar (assuming max ~30 frames for demo)
-                        let progressPercent = Math.min((count / 30) * 100, 100);
-                        document.getElementById("progressBar").style.width = progressPercent + "%";
-                        document.getElementById("progressText").textContent = `Received ${count} captions...`;
-                    }
-                });
-                buffer = parts[parts.length - 1];
-            }
-
-            function read() {
-                reader.read().then(({ done, value }) => {
-                    if (done) {
-                        document.getElementById("progressText").textContent = "Captioning complete!";
-                        document.getElementById("progressBar").style.width = "100%";
-                        if (captionsData.length > 0) {
-                            document.getElementById("downloadBtn").style.display = "block";
+                function processChunk(chunk) {
+                    buffer += chunk;
+                    const parts = buffer.split("\n\n");
+                    parts.slice(0, -1).forEach(msg => {
+                        if (msg.startsWith("data: ")) {
+                            const [fname, cap] = msg.slice(6).split("|");
+                            const el = document.createElement("div");
+                            el.className = "result-card";
+                            el.innerHTML = `
+                                <img src="/static/frames/${fname}" alt="Video frame ${fname}">
+                                <div class="caption"></div>
+                            `;
+                            const captionDiv = el.querySelector(".caption");
+                            document.getElementById("results").appendChild(el);
+                            typeWriterEffectWords(captionDiv, cap);
+                            count++;
+                            document.getElementById("progressText").textContent = `Received ${count} captions...`;
                         }
-                        return;
-                    }
-                    processChunk(decoder.decode(value, { stream: true }));
-                    read();
-                }).catch(err => {
-                    document.getElementById("progressText").textContent = "Error: " + err.message;
-                });
-            }
-            read();
-        })
-        .catch(err => {
-            document.getElementById("progressText").textContent = "Upload failed: " + err.message;
+                    });
+                    buffer = parts[parts.length - 1];
+                }
+
+                function read() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            document.getElementById("progressText").textContent = "All captions generated.";
+                            return;
+                        }
+                        processChunk(decoder.decode(value, { stream: true }));
+                        read();
+                    }).catch(err => {
+                        document.getElementById("progressText").textContent = "Error: " + err.message;
+                    });
+                }
+                read();
+            })
+            .catch(err => {
+                document.getElementById("progressText").textContent = "Upload failed: " + err.message;
+            });
         });
-    });
-
-    // Download captions as a .txt file
-    document.getElementById('downloadBtn').addEventListener('click', () => {
-        if (captionsData.length === 0) return;
-
-        const blob = new Blob([captionsData.join('\n')], {type: 'text/plain'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'video_captions.txt';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-    });
     </script>
 </body>
 </html>
