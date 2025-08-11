@@ -61,8 +61,3 @@ Designed as a proof-of-concept for accessibility technology, it can be adapted f
 - Improve frame extraction intervals  
 - Explore integration with RL-based attention mechanisms for caption improvement
 
----
-
-## License
-
-MIT License
