@@ -1,25 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-       <title>Document</title>
+    <title>Video Captioning</title>
 </head>
 <body>
-    <h1>Upload your video bitchass</h1>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="video" accept="video/*">
-        <button type="submit">Upload</button>
+    <h1>Upload Video for Live Captioning</h1>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="video" accept="video/*" required>
+        <button type="submit">Upload & Generate</button>
     </form>
-    
-    {% if captions %}
-        <h2>Results:</h2>
 
-        {%for frame, text in captions %}
-        <div>
-            <img src="{{ url_for('static', filename='frames/' + frame) }}"
-            <p>{{ text }}</p>
-        </div>
-        {% endfor %}
-    {% endif %}
+    <div id="results" style="margin-top:20px;"></div>
 
+    <script>
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch('/generate', { method: 'POST', body: formData })
+        .then(response => {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            
+            function read() {
+                reader.read().then(({ done, value }) => {
+                    if (done) return;
+                    buffer += decoder.decode(value, { stream: true });
+                    const parts = buffer.split("\n\n");
+                    parts.slice(0, -1).forEach(msg => {
+                        if (msg.startsWith("data: ")) {
+                            const [fname, cap] = msg.slice(6).split("|");
+                            const el = document.createElement("div");
+                            el.innerHTML = `
+                                <div style="margin-bottom:15px;">
+                                    <img src="/static/frames/${fname}" style="max-width:200px; display:block; margin-bottom:5px;">
+                                    <b>${fname}</b>: ${cap}
+                                </div>
+                            `;
+                            document.getElementById("results").appendChild(el);
+                        }
+                    });
+                    buffer = parts[parts.length - 1];
+                    read();
+                });
+            }
+            read();
+        });
+    });
+    </script>
 </body>
 </html>
